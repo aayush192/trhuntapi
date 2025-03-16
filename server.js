@@ -111,7 +111,7 @@ const validateGameType = (req, res, next) => {
 // Middleware to validate clue ID
 const validateClueId = (req, res, next) => {
   const id = parseInt(req.params.id);
-  if (isNaN(id) {
+  if (isNaN(id)) { // Fixed: Added missing closing parenthesis
     return res.status(400).json({ message: "Invalid clue ID. Must be a number." });
   }
   next();
