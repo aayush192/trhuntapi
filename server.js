@@ -2,7 +2,10 @@ const express = require("express");
 const cors = require("cors"); // Importing the cors package
 
 
+
 const app = express();
+app.use(express.json()); // For parsing application/json
+
 const port = process.env.PORT || 3000;
 
 const games = {
@@ -101,68 +104,156 @@ const games = {
   }
 };
 
-// Success Response Format Example
-const successResponse = (data, message = "Request successful") => {
-  return {
+// In-memory user progress (replace with a database in production)
+const userProgress = {};
+
+// Success and error response functions
+const successResponse = (data, message = "Request successful") => ({
     status: "success",
-    message: message,
-    data: data,
-  };
-};
-
-// Error Response Format Example
-const errorResponse = (message = "An error occurred", error = null) => {
-  return {
-    status: "error",
-    message: message,
-    error: error,
-  };
-};
-
-// Middleware to validate game type
-const validateGameType = (req, res, next) => {
-  const type = parseInt(req.params.type);
-  if (![10, 20, 30].includes(type)) {
-    return res.status(400).json(errorResponse("Invalid game type. Available: 10, 20, 30 clues."));
-  }
-  next();
-};
-
-// Middleware to validate clue ID
-const validateClueId = (req, res, next) => {
-  const id = parseInt(req.params.id);
-  if (isNaN(id)) {
-    return res.status(400).json(errorResponse("Invalid clue ID. Must be a number."));
-  }
-  next();
-};
-app.use(cors()); 
-// Get game details and clues
-app.get("/game/:type", validateGameType, (req, res) => {
-  const type = parseInt(req.params.type);
-  res.json(successResponse(games[type]));
+    message,
+    data,
 });
 
-// Get a single clue from a game type
-app.get("/game/:type/:id", validateGameType, validateClueId, (req, res) => {
-  const type = parseInt(req.params.type);
-  const id = parseInt(req.params.id);
-  const game = games[type];
+const errorResponse = (message = "An error occurred", error = null) => ({
+    status: "error",
+    message,
+    error,
+});
 
-  const clue = game.clues.find(c => c.id === id);
-  if (clue) {
-    res.json(successResponse(clue));
+// API endpoints
+
+// 1. Fetch available games (GET /games)
+app.get("/games", (req, res) => {
+  // This endpoint handles GET requests to /games.
+  // It returns a list of all available treasure hunt games.
+
+  // Object.keys(games) gets an array of the keys (10, 20, 30) from the 'games' object.
+  // .map() then transforms each key into an object representing a game.
+  const availableGames = Object.keys(games).map((key) => ({
+      // 'type' is the number of clues in the game.
+      type: parseInt(key),
+      // 'title', 'description', 'difficulty', and 'category' are properties of each game.
+      title: games[key].title,
+      description: games[key].description,
+      difficulty: games[key].difficulty,
+      category: games[key].category,
+  }));
+  // Sends the 'availableGames' array as a JSON response to the client.
+  res.json(successResponse(availableGames));
+});
+
+// 2. Start a game session (POST /game/start/:type)
+app.post("/game/start/:type", (req, res) => {
+  // This endpoint handles POST requests to /game/start/:type.
+  // It starts a new game session for a user.
+
+  // 'req.params.type' gets the ':type' parameter from the URL (e.g., 10, 20, 30).
+  const type = parseInt(req.params.type);
+  // Checks if the requested 'type' exists in the 'games' object.
+  if (!games[type]) {
+      // If the 'type' is invalid, sends a 400 (Bad Request) error response.
+      return res.status(400).json(errorResponse("Invalid game type"));
+  }
+
+  // 'req.body.userId' gets the 'userId' from the request body (sent by the client).
+  const userId = req.body.userId; // Assuming you have a userId
+  // Checks if 'userId' is provided in the request body.
+  if (!userId) {
+      // If 'userId' is missing, sends a 400 (Bad Request) error response.
+      return res.status(400).json(errorResponse("userId is required"));
+  }
+
+  // Creates a new entry in the 'userProgress' object to store the user's game progress.
+  // 'userId' is used as the key to identify the user's session.
+  userProgress[userId] = {
+      // 'gameType' stores the selected game type (10, 20, or 30).
+      gameType: type,
+      // 'currentClueIndex' keeps track of the current clue the user is on (starts at 0).
+      currentClueIndex: 0,
+  };
+  // Sends a success response to the client with a message and the started game data.
+  res.json(successResponse({ message: `Game ${type} started for user ${userId}` }));
+});
+
+// 3. Fetch the next clue based on user progress (GET /game/clue/:userId)
+app.get("/game/clue/:userId", (req, res) => {
+  // This endpoint handles GET requests to /game/clue/:userId.
+  // It returns the next clue for the user based on their progress.
+
+  // 'req.params.userId' gets the 'userId' parameter from the URL.
+  const userId = req.params.userId;
+  // Checks if a game session exists for the given 'userId'.
+  if (!userProgress[userId]) {
+      // If the session is not found, sends a 404 (Not Found) error response.
+      return res.status(404).json(errorResponse("Game session not found for this user"));
+  }
+
+  // Retrieves the user's game progress from the 'userProgress' object.
+  const { gameType, currentClueIndex } = userProgress[userId];
+  // Retrieves the clues for the user's selected game type.
+  const clues = games[gameType].clues;
+
+  // Checks if the user has completed all the clues.
+  if (currentClueIndex >= clues.length) {
+      // If the game is completed, sends a success response with a completion message.
+      return res.json(successResponse({ message: "Game completed" }));
+  }
+
+  // Retrieves the current clue based on the 'currentClueIndex'.
+  const clue = clues[currentClueIndex];
+  // Sends the current clue as a JSON response to the client.
+  res.json(successResponse({ clue: { id: clue.id, clue: clue.clue } }));
+});
+
+// 4. Check the answer before providing the next clue (POST /game/answer/:userId)
+app.post("/game/answer/:userId", (req, res) => {
+  // This endpoint handles POST requests to /game/answer/:userId.
+  // It checks the user's answer and provides the next clue if the answer is correct.
+
+  // 'req.params.userId' gets the 'userId' parameter from the URL.
+  const userId = req.params.userId;
+  // Checks if a game session exists for the given 'userId'.
+  if (!userProgress[userId]) {
+      // If the session is not found, sends a 404 (Not Found) error response.
+      return res.status(404).json(errorResponse("Game session not found for this user"));
+  }
+
+  // Retrieves the user's game progress.
+  const { gameType, currentClueIndex } = userProgress[userId];
+  // Retrieves the clues for the user's selected game.
+  const clues = games[gameType].clues;
+  // 'req.body.answer' gets the user's answer from the request body.
+  const userAnswer = req.body.answer;
+
+  // Checks if the game is already completed.
+  if (currentClueIndex >= clues.length) {
+      // If the game is completed, sends a 400 (Bad Request) error response.
+      return res.status(400).json(errorResponse("Game already completed"));
+  }
+
+  // Retrieves the correct answer for the current clue.
+  const correctAnswer = clues[currentClueIndex].answer.toLowerCase();
+  // Checks if the user's answer matches the correct answer (case-insensitive).
+  if (userAnswer.toLowerCase() === correctAnswer) {
+      // If the answer is correct, increments the 'currentClueIndex' to move to the next clue.
+      userProgress[userId].currentClueIndex++;
+      // Sends a success response indicating the answer is correct.
+      res.json(successResponse({ correct: true, message: "Correct answer!" }));
   } else {
-    res.status(404).json(errorResponse("Clue not found"));
+      // If the answer is incorrect, sends a success response indicating the answer is incorrect.
+      res.json(successResponse({ correct: false, message: "Incorrect answer. Try again." }));
   }
 });
 
 // Error handling middleware
 app.use((err, req, res, next) => {
+  // This middleware handles any errors that occur during the request processing.
+  // It logs the error stack to the console and sends a 500 (Internal Server Error) response.
   console.error(err.stack);
   res.status(500).json(errorResponse("Something went wrong!", err));
 });
 
+// Starts the server and listens on the specified port.
 app.listen(port, () => {
   console.log(`Treasure Hunt API running at http://localhost:${port}`);
 });
