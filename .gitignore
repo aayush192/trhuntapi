@@ -1,0 +1,39 @@
+# Node modules directory
+node_modules/
+
+# npm log files
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+
+# Environment variables
+.env
+
+# Build output directories
+/dist
+/build
+
+# OS-specific files
+.DS_Store        # macOS
+Thumbs.db        # Windows
+
+# IDE and Editor directories
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# Dependency directories
+npm/
+yarn/
+
+# Test coverage directory
+coverage/
+
+# Templating engine cache files
+*.swp
+
+# MacOS files
+.AppleDouble
+.LSOverride
