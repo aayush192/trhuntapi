@@ -68,14 +68,14 @@ The Treasure Hunt API provides the following endpoints to fetch treasure hunt ga
 
 ### 1. **Get 10 Clue Game** 🧩
 
-- **Endpoint**: `/games/10`
+- **Endpoint**: `/game/10`
 - **Method**: GET
 - **Description**: Fetches the 10-clue treasure hunt game.
 
 #### Example Request
 
 ```http
-GET http://localhost:3000/games/10
+GET http://localhost:3000/game/10
 ```
 
 #### Example Response
@@ -101,14 +101,14 @@ GET http://localhost:3000/games/10
 
 ### 2. **Get 20 Clue Game** 🤔
 
-- **Endpoint**: `/games/20`
+- **Endpoint**: `/game/20`
 - **Method**: GET
 - **Description**: Fetches the 20-clue treasure hunt game.
 
 #### Example Request
 
 ```http
-GET http://localhost:3000/games/20
+GET http://localhost:3000/game/20
 ```
 
 #### Example Response
@@ -144,14 +144,14 @@ GET http://localhost:3000/games/20
 
 ### 3. **Get 30 Clue Game** 💎
 
-- **Endpoint**: `/games/30`
+- **Endpoint**: `/game/30`
 - **Method**: GET
 - **Description**: Fetches the 30-clue treasure hunt game.
 
 #### Example Request
 
 ```http
-GET http://localhost:3000/games/30
+GET http://localhost:3000/game/30
 ```
 
 #### Example Response
