@@ -1,4 +1,6 @@
 const express = require("express");
+const cors = require("cors"); // Importing the cors package
+
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -99,11 +101,29 @@ const games = {
   }
 };
 
+// Success Response Format Example
+const successResponse = (data, message = "Request successful") => {
+  return {
+    status: "success",
+    message: message,
+    data: data,
+  };
+};
+
+// Error Response Format Example
+const errorResponse = (message = "An error occurred", error = null) => {
+  return {
+    status: "error",
+    message: message,
+    error: error,
+  };
+};
+
 // Middleware to validate game type
 const validateGameType = (req, res, next) => {
   const type = parseInt(req.params.type);
   if (![10, 20, 30].includes(type)) {
-    return res.status(400).json({ message: "Invalid game type. Available: 10, 20, 30 clues." });
+    return res.status(400).json(errorResponse("Invalid game type. Available: 10, 20, 30 clues."));
   }
   next();
 };
@@ -111,16 +131,16 @@ const validateGameType = (req, res, next) => {
 // Middleware to validate clue ID
 const validateClueId = (req, res, next) => {
   const id = parseInt(req.params.id);
-  if (isNaN(id)) { // Fixed: Added missing closing parenthesis
-    return res.status(400).json({ message: "Invalid clue ID. Must be a number." });
+  if (isNaN(id)) {
+    return res.status(400).json(errorResponse("Invalid clue ID. Must be a number."));
   }
   next();
 };
-
+app.use(cors()); 
 // Get game details and clues
 app.get("/game/:type", validateGameType, (req, res) => {
   const type = parseInt(req.params.type);
-  res.json(games[type]);
+  res.json(successResponse(games[type]));
 });
 
 // Get a single clue from a game type
@@ -131,16 +151,16 @@ app.get("/game/:type/:id", validateGameType, validateClueId, (req, res) => {
 
   const clue = game.clues.find(c => c.id === id);
   if (clue) {
-    res.json(clue);
+    res.json(successResponse(clue));
   } else {
-    res.status(404).json({ message: "Clue not found" });
+    res.status(404).json(errorResponse("Clue not found"));
   }
 });
 
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
-  res.status(500).json({ message: "Something went wrong!" });
+  res.status(500).json(errorResponse("Something went wrong!", err));
 });
 
 app.listen(port, () => {
