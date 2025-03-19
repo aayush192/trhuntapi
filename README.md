@@ -1,4 +1,3 @@
-```markdown
 # Treasure Hunt Game - API and Frontend README
 
 This document provides instructions for setting up and using the Treasure Hunt Game, which includes a backend API and a frontend React application.
@@ -111,4 +110,3 @@ The Treasure Hunt Game consists of a backend API that manages game sessions and 
 * Ensure that the backend server is running before starting the frontend application.
 * The frontend assumes that the backend server is running on `http://localhost:3000`. If you are running the backend on a different port, update the API URLs in the frontend code.
 * This project can be further enhanced with features like user authentication, persistent game progress, and improved UI/UX.
-```
