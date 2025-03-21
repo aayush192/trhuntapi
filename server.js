@@ -185,6 +185,8 @@ const games = {
 
 
 // In-memory user progress (replace with a database in production)
+const SESSION_TIMEOUT = 6 * 60 * 60 * 1000; // 6 hours in milliseconds
+
 
 const userProgress = {};
 
@@ -216,10 +218,20 @@ const errorResponse = (message = "An error occurred", error = null) => ({
 
 
 
+// Periodic cleanup of expired sessions (runs every hour)
+setInterval(() => {
+  const now = Date.now();
+  Object.keys(userProgress).forEach((sessionId) => {
+    if (now - new Date(userProgress[sessionId].startTime).getTime() > SESSION_TIMEOUT) {
+      delete userProgress[sessionId];
+      console.log(`Session ${sessionId} expired and removed.`);
+    }
+  });
+}, 60 * 60 * 1000);
+
 // API endpoints
 
-
-// 1. Get available games (unchanged)
+// 1. Get available games
 app.get("/games", (req, res) => {
   const availableGames = Object.keys(games).map((key) => ({
     type: parseInt(key),
@@ -231,7 +243,7 @@ app.get("/games", (req, res) => {
   res.json(successResponse(availableGames));
 });
 
-// 2. Start game - now generates session ID
+// 2. Start game - generates session ID
 app.post("/game/start/:type", (req, res) => {
   const type = parseInt(req.params.type);
   if (!games[type]) {
@@ -242,17 +254,17 @@ app.post("/game/start/:type", (req, res) => {
   userProgress[sessionId] = {
     gameType: type,
     currentClueIndex: 0,
-    startTime: new Date().toISOString()
+    startTime: new Date().toISOString(),
   };
 
   res.json(successResponse({
     sessionId,
     gameType: type,
-    message: `Game session started`
+    message: `Game session started`,
   }));
 });
 
-// 3. Get clue - now uses session ID
+// 3. Get clue - checks session expiration
 app.get("/game/clue/:sessionId", (req, res) => {
   const sessionId = req.params.sessionId;
   const progress = userProgress[sessionId];
@@ -261,26 +273,35 @@ app.get("/game/clue/:sessionId", (req, res) => {
     return res.status(404).json(errorResponse("Session not found"));
   }
 
+  if (Date.now() - new Date(progress.startTime).getTime() > SESSION_TIMEOUT) {
+    delete userProgress[sessionId];
+    return res.status(403).json(errorResponse("Session expired. Please start a new game."));
+  }
+
   const clues = games[progress.gameType].clues;
   if (progress.currentClueIndex >= clues.length) {
     return res.json(successResponse({ message: "Game completed" }));
   }
 
-  const clue = clues[progress.currentClueIndex];
   res.json(successResponse({
     clueNumber: progress.currentClueIndex + 1,
     totalClues: clues.length,
-    clue: { id: clue.id, text: clue.clue }
+    clue: { id: clues[progress.currentClueIndex].id, text: clues[progress.currentClueIndex].clue }
   }));
 });
 
-// 4. Submit answer - now uses session ID
+// 4. Submit answer - checks session expiration
 app.post("/game/answer/:sessionId", (req, res) => {
   const sessionId = req.params.sessionId;
   const progress = userProgress[sessionId];
 
   if (!progress) {
     return res.status(404).json(errorResponse("Session not found"));
+  }
+
+  if (Date.now() - new Date(progress.startTime).getTime() > SESSION_TIMEOUT) {
+    delete userProgress[sessionId];
+    return res.status(403).json(errorResponse("Session expired. Please start a new game."));
   }
 
   const clues = games[progress.gameType].clues;
@@ -308,12 +329,13 @@ app.post("/game/answer/:sessionId", (req, res) => {
   }));
 });
 
-// Keep error handling and server startup same as before
+// Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json(errorResponse("Something went wrong!", err));
 });
 
+// Start server
 app.listen(port, () => {
   console.log(`Treasure Hunt API running at http://localhost:${port}`);
 });
