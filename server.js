@@ -7,6 +7,14 @@ const app = express();
 
 // Connect Database
 connectDB();
+const cors = require("cors");
+
+// Enable CORS for all routes
+app.use(cors({
+  origin: "https://trhunt.vercel.app", // Allow only your frontend
+  methods: "GET,POST,PUT,DELETE",
+  allowedHeaders: "Content-Type,Authorization"
+}));
 
 // Root Route
 app.get("/", (req, res) => {
