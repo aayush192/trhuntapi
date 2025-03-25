@@ -3,136 +3,113 @@ const User = require('../models/User');
 const { v4: uuidv4 } = require('uuid');
 
 // Helper function to generate a unique session ID
-const generateSessionId = () => {
-  return uuidv4(); // Generates a unique session ID
-};
+const generateSessionId = () => uuidv4();
 
-// Start a new game for the user
+// Start a new game session
 const startGame = async (req, res) => {
-  const { name, clueCount, clues } = req.body;
+  const { type } = req.params;
+  const { clueCount, clues, username } = req.body;
 
-  // Validation check: Ensure that all required fields are present
-  if (!name) {
-    return res.status(400).json({ error: "Name is required." });
-  }
   if (!clueCount || typeof clueCount !== 'number' || clueCount <= 0) {
     return res.status(400).json({ error: "Clue count must be a positive number." });
   }
   if (!Array.isArray(clues) || clues.length !== clueCount) {
     return res.status(400).json({ error: "Clues must be an array with length equal to clue count." });
   }
+  if (!username) {
+    return res.status(400).json({ error: "Username is required." });
+  }
 
   try {
-    // Generate a unique game ID and create a new game document
-    const gameId = generateSessionId();
-    const game = new Game({ gameId, name, clueCount, clues, currentClue: 0 });
-    await game.save();
-
-    // Generate a unique session ID and create a new user document
     const sessionId = generateSessionId();
-    const newUser = new User({ username: req.body.username, activeGame: gameId });
+    const game = new Game({ sessionId, type, clueCount, clues, currentClue: 0 });
+
+    await game.save();
+    const newUser = new User({ username, activeSession: sessionId });
+
     await newUser.save();
 
-    // Log the game start details
-    console.log(`[${new Date().toISOString()}] POST /api/games: Game started - Game ID: ${gameId}, Session ID: ${sessionId}, Request body: ${JSON.stringify(req.body)}`);
+    console.log(`[${new Date().toISOString()}] POST /api/game/start/${type}: Game started - Session ID: ${sessionId}`);
 
-    // Respond with the gameId and sessionId to the frontend
-    res.status(201).json({ gameId, sessionId }); // Use 201 for created
+    res.status(201).json({ sessionId });
   } catch (error) {
-    // Log any errors that occurred during game start
-    console.error(`[${new Date().toISOString()}] POST /api/games: Error starting game - Request body: ${JSON.stringify(req.body)}, Error:`, error);
+    console.error(`[${new Date().toISOString()}] POST /api/game/start/${type}: Error starting game`, error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 };
 
-// Get the clue for a specific game
+// Retrieve the next clue
 const getClue = async (req, res) => {
-  const { gameId } = req.params;
+  const { sessionId } = req.params;
 
   try {
-    // Retrieve user progress based on the active game
-    const progress = await User.findOne({ activeGame: gameId });
-    if (!progress) {
-      // Log if the session is not found
-      console.log(`[${new Date().toISOString()}] GET /api/games/${gameId}/clues: Session not found for game ID: ${gameId}`);
-      return res.status(404).json({ error: "Session not found, please start a new game" });
-    }
-
-    // Retrieve the game details
-    const game = await Game.findOne({ gameId });
+    const game = await Game.findOne({ sessionId });
     if (!game) {
-      // Log if the game is not found
-      console.log(`[${new Date().toISOString()}] GET /api/games/${gameId}/clues: Game not found - Game ID: ${gameId}`);
-      return res.status(404).json({ error: `Game with ID: ${gameId} not found` });
+      return res.status(404).json({ error: "Game session not found. Start a new game." });
     }
 
-    // Retrieve the clue for the current progress in the game
+    if (game.currentClue >= game.clues.length) {
+      return res.status(200).json({ message: "Congratulations! You've completed the game." });
+    }
+
     const clue = game.clues[game.currentClue];
 
-    // Log the clue retrieval details
-    console.log(`[${new Date().toISOString()}] GET /api/games/${gameId}/clues: Clue retrieved - Game ID: ${gameId}, Clue: ${JSON.stringify(clue)}`);
+    console.log(`[${new Date().toISOString()}] GET /api/game/clue/${sessionId}: Clue retrieved`);
 
-    // Send the clue as a response to the frontend
     res.status(200).json({ clue });
   } catch (error) {
-    // Log any errors that occurred during clue retrieval
-    console.error(`[${new Date().toISOString()}] GET /api/games/${gameId}/clues: Error retrieving clue - Game ID: ${gameId}, Error:`, error);
+    console.error(`[${new Date().toISOString()}] GET /api/game/clue/${sessionId}: Error retrieving clue`, error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 };
 
-// Submit an answer for a specific clue in the game
+// Submit an answer and progress the game
 const submitAnswer = async (req, res) => {
-  const { gameId } = req.params;
+  const { sessionId } = req.params;
   const { answer } = req.body;
 
   try {
-    // Retrieve the game details
-    const game = await Game.findOne({ gameId });
+    const game = await Game.findOne({ sessionId });
     if (!game) {
-      // Log if the game is not found
-      console.log(`[${new Date().toISOString()}] POST /api/games/${gameId}/answer: Game not found - Game ID: ${gameId}`);
-      return res.status(404).json({ error: `Game with ID: ${gameId} not found` });
+      return res.status(404).json({ error: "Game session not found. Start a new game." });
     }
 
-    // Check if the provided answer matches the correct answer (case-insensitive)
-    const correctAnswer = game.clues[game.currentClue].answer.toLowerCase();
-    const userAnswer = answer.toLowerCase();
+    if (game.currentClue >= game.clues.length) {
+      return res.status(400).json({ message: "Game already completed. Start a new game." });
+    }
 
-    // If the answer is correct, move to the next clue
+    const correctAnswer = game.clues[game.currentClue].answer.trim().toLowerCase();
+    const userAnswer = answer.trim().toLowerCase();
+
     if (userAnswer === correctAnswer) {
       game.currentClue += 1;
       await game.save();
 
-      // Log the correct answer submission details
-      console.log(`[${new Date().toISOString()}] POST /api/games/${gameId}/answer: Correct answer - Game ID: ${gameId}, Clue: ${game.currentClue}`);
-      res.status(200).json({ message: "Correct! Here's the next clue." });
+      if (game.currentClue >= game.clues.length) {
+        return res.status(200).json({ message: "Congratulations! You've completed the game." });
+      }
+
+      console.log(`[${new Date().toISOString()}] POST /api/game/answer/${sessionId}: Correct answer`);
+      return res.status(200).json({ message: "Correct! Here's the next clue." });
     } else {
-      // Log the incorrect answer submission details
-      console.log(`[${new Date().toISOString()}] POST /api/games/${gameId}/answer: Incorrect answer - Game ID: ${gameId}, Clue: ${game.currentClue}, User Answer: ${answer}`);
-      res.status(400).json({ message: "Incorrect answer. Try again." });
+      return res.status(400).json({ message: "Incorrect answer. Try again." });
     }
   } catch (error) {
-    // Log any errors that occurred during answer submission
-    console.error(`[${new Date().toISOString()}] POST /api/games/${gameId}/answer: Error submitting answer - Game ID: ${gameId}, Error:`, error);
+    console.error(`[${new Date().toISOString()}] POST /api/game/answer/${sessionId}: Error submitting answer`, error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 };
 
-// Get all available games without returning clues
+// Get all available games without clues
 const getAllGames = async (req, res) => {
   try {
-    // Retrieve all game records but exclude the 'clues' field
     const games = await Game.find({}, { clues: 0 });
 
-    // Log the retrieval of all games
-    console.log(`[${new Date().toISOString()}] GET /api/games: All games retrieved - Count: ${games.length}`);
+    console.log(`[${new Date().toISOString()}] GET /api/games: Retrieved ${games.length} games`);
 
-    // Send the filtered list of games as a response to the frontend
     res.status(200).json(games);
   } catch (error) {
-    // Log any errors that occurred during game retrieval
-    console.error(`[${new Date().toISOString()}] GET /api/games: Error fetching games - Error:`, error);
+    console.error(`[${new Date().toISOString()}] GET /api/games: Error fetching games`, error);
     res.status(500).json({ error: 'Error fetching games' });
   }
 };
