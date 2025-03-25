@@ -1,6 +1,3 @@
-Sure! Here's a polished version of your README in markdown format:
-
-
 # Treasure Hunt Game - API and Frontend
 
 This project is a **Treasure Hunt Game** that includes both a **backend API** and a **frontend React application**. The game involves solving clues, and the backend API manages game sessions and clues, while the frontend provides the user interface for interacting with the game.
