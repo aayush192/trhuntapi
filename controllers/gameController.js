@@ -1,5 +1,5 @@
 const Game = require('../models/Game');
-const User = require('../models/user');
+const User = require('../models/User');
 const { v4: uuidv4 } = require('uuid');
 
 // Helper function to generate a unique session ID
