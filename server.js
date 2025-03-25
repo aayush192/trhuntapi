@@ -1,9 +1,13 @@
 require("dotenv").config();
 const express = require("express");
+const cors = require("cors"); // Import CORS
 const connectDB = require("./config/db");
 const Game = require("./models/Game"); // Import the Game model
 
 const app = express();
+
+// Use CORS middleware
+app.use(cors()); // This will enable CORS for all routes
 
 // Connect Database
 connectDB();
