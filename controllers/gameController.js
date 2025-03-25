@@ -119,16 +119,16 @@ const submitAnswer = async (req, res) => {
   }
 };
 
-// Get all available games
+// Get all available games without returning clues
 const getAllGames = async (req, res) => {
   try {
-    // Retrieve all game records from the database
-    const games = await Game.find();
+    // Retrieve all game records but exclude the 'clues' field
+    const games = await Game.find({}, { clues: 0 });
 
     // Log the retrieval of all games
     console.log(`[${new Date().toISOString()}] GET /api/games: All games retrieved - Count: ${games.length}`);
 
-    // Send the list of games as a response to the frontend
+    // Send the filtered list of games as a response to the frontend
     res.status(200).json(games);
   } catch (error) {
     // Log any errors that occurred during game retrieval
