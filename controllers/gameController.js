@@ -5,25 +5,37 @@ const { v4: uuidv4 } = require('uuid');
 // Helper function to generate a unique session ID
 const generateSessionId = () => uuidv4();
 
-// Start a new game session
-const startGame = async (req, res) => {
+/const startGame = async (req, res) => {
   const { type } = req.body; // ✅ Type is now sent in the request body
 
+  // Check if 'type' exists
+  console.log(`[${new Date().toISOString()}] POST /api/games: Received request body - type: ${type}`);
+
   if (!type) {
+    console.log(`[${new Date().toISOString()}] POST /api/games: Game type is missing in request body`);
     return res.status(400).json({ error: "Game type is required." });
   }
 
   try {
+    // Generate the session ID
     const sessionId = generateSessionId();
+    console.log(`[${new Date().toISOString()}] POST /api/games: Generated Session ID: ${sessionId}`);
+
+    // Create the game object
     const game = new Game({ sessionId, type, clueCount: 0, clues: [], currentClue: 0 });
+    console.log(`[${new Date().toISOString()}] POST /api/games: Created Game object: ${JSON.stringify(game)}`);
 
+    // Save the game to the database
+    console.log(`[${new Date().toISOString()}] POST /api/games: Attempting to save game to DB`);
     await game.save();
+    console.log(`[${new Date().toISOString()}] POST /api/games: Game saved successfully to DB`);
 
-    console.log(`[${new Date().toISOString()}] POST /api/games: Game started - Session ID: ${sessionId}`);
+    // Respond with the session ID
+    console.log(`[${new Date().toISOString()}] POST /api/games: Responding with sessionId: ${sessionId}`);
+    res.status(201).json({ sessionId });
 
-    res.status(201).json({ sessionId }); // ✅ Only sending sessionId to frontend
   } catch (error) {
-    console.error(`[${new Date().toISOString()}] POST /api/games: Error starting game`, error);
+    console.error(`[${new Date().toISOString()}] POST /api/games: Error occurred`, error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 };
