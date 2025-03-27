@@ -8,6 +8,8 @@ const app = express();
 
 // Use CORS middleware
 app.use(cors()); // This will enable CORS for all routes
+app.use(express.json()); // Middleware to parse JSON body
+app.use(express.urlencoded({ extended: true })); // Middleware to parse URL-encoded body
 
 // Connect Database
 connectDB();
@@ -39,16 +41,15 @@ app.use((err, req, res, next) => {
 async function fetchAndLogGames() {
   try {
     const games = await Game.find();
-    console.log("Games fetched on server start:");
-    console.log(JSON.stringify(games, null, 2)); // Log games in a readable format
   } catch (error) {
     console.error("Error fetching games on server start:", error);
   }
 }
+const HOST = "http://localhost"; // Change if needed (e.g., when deploying)
 
 // Start Server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, async () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`🚀 Server running on port$ ${HOST}:${PORT}`);
   await fetchAndLogGames(); // Call the function to fetch and log games
 });

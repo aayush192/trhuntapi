@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 // Define the schema for the Game model
 const gameSchema = new mongoose.Schema({
   gameId: { type: String, required: true, unique: true }, // Unique ID for each game
-  name: { type: String, required: true }, // Name of the game
+  name: { type: String, required: false }, // Name of the game
   clueCount: { type: Number, required: true }, // Total number of clues in the game
   clues: [
     {

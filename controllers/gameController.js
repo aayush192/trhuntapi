@@ -6,37 +6,32 @@ const { v4: uuidv4 } = require('uuid');
 const generateSessionId = () => uuidv4();
 
 const startGame = async (req, res) => {
-  const { type } = req.body; // ✅ Type is now sent in the request body
+  console.log("Request Body:", req.body); // Debugging log
+  console.log("📥 Request received at /api/games");
 
-  // Check if 'type' exists
-  console.log(`[${new Date().toISOString()}] POST /api/games: Received request body - type: ${type}`);
+  const { gameId } = req.body;
+  console.log("🔍 Checking request body...", req.body);
 
-  if (!type) {
-    console.log(`[${new Date().toISOString()}] POST /api/games: Game type is missing in request body`);
+  if (!gameId) {
+    console.log("❌ Game type is missing");
     return res.status(400).json({ error: "Game type is required." });
   }
 
   try {
-    // Generate the session ID
     const sessionId = generateSessionId();
-    console.log(`[${new Date().toISOString()}] POST /api/games: Generated Session ID: ${sessionId}`);
+    console.log(`🆔 Generated Session ID: ${sessionId}`);
 
-    // Create the game object
-    const game = new Game({ sessionId, type, clueCount: 0, clues: [], currentClue: 0 });
-    console.log(`[${new Date().toISOString()}] POST /api/games: Created Game object: ${JSON.stringify(game)}`);
+    const game = new Game({ sessionId, gameId, clueCount: 0, clues: [], currentClue: 0 });
+    console.log("📝 Creating game object...", game);
 
-    // Save the game to the database
-    console.log(`[${new Date().toISOString()}] POST /api/games: Attempting to save game to DB`);
     await game.save();
-    console.log(`[${new Date().toISOString()}] POST /api/games: Game saved successfully to DB`);
+    console.log("✅ Game saved successfully to DB");
 
-    // Respond with the session ID
-    console.log(`[${new Date().toISOString()}] POST /api/games: Responding with sessionId: ${sessionId}`);
     res.status(201).json({ sessionId });
 
   } catch (error) {
-    console.error(`[${new Date().toISOString()}] POST /api/games: Error occurred`, error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    console.error("❌ Error in startGame:", error);
+    res.status(500).json({ error: "Internal Server Error"});
   }
 };
 
