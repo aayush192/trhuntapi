@@ -5,7 +5,7 @@ const { v4: uuidv4 } = require('uuid');
 // Helper function to generate a unique session ID
 const generateSessionId = () => uuidv4();
 
-/const startGame = async (req, res) => {
+const startGame = async (req, res) => {
   const { type } = req.body; // ✅ Type is now sent in the request body
 
   // Check if 'type' exists
