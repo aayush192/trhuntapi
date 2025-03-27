@@ -7,43 +7,38 @@ const generateSessionId = () => uuidv4();
 
 // Start a new game session
 const startGame = async (req, res) => {
-  const { type } = req.params;
-  const { clueCount, clues, username } = req.body;
+  const { type } = req.body; // ✅ Type is now sent in the request body
 
-  if (!clueCount || typeof clueCount !== 'number' || clueCount <= 0) {
-    return res.status(400).json({ error: "Clue count must be a positive number." });
-  }
-  if (!Array.isArray(clues) || clues.length !== clueCount) {
-    return res.status(400).json({ error: "Clues must be an array with length equal to clue count." });
-  }
-  if (!username) {
-    return res.status(400).json({ error: "Username is required." });
+  if (!type) {
+    return res.status(400).json({ error: "Game type is required." });
   }
 
   try {
     const sessionId = generateSessionId();
-    const game = new Game({ sessionId, type, clueCount, clues, currentClue: 0 });
+    const game = new Game({ sessionId, type, clueCount: 0, clues: [], currentClue: 0 });
 
     await game.save();
-    const newUser = new User({ username, activeSession: sessionId });
 
-    await newUser.save();
+    console.log(`[${new Date().toISOString()}] POST /api/games: Game started - Session ID: ${sessionId}`);
 
-    console.log(`[${new Date().toISOString()}] POST /api/game/start/${type}: Game started - Session ID: ${sessionId}`);
-
-    res.status(201).json({ sessionId });
+    res.status(201).json({ sessionId }); // ✅ Only sending sessionId to frontend
   } catch (error) {
-    console.error(`[${new Date().toISOString()}] POST /api/game/start/${type}: Error starting game`, error);
+    console.error(`[${new Date().toISOString()}] POST /api/games: Error starting game`, error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 };
 
-// Retrieve the next clue
+// Retrieve the next clue securely using POST
 const getClue = async (req, res) => {
-  const { sessionId } = req.params;
+  const { sessionId } = req.body; // ✅ Fetch sessionId from body instead of URL params
+
+  if (!sessionId) {
+    return res.status(400).json({ error: "Session ID is required." });
+  }
 
   try {
     const game = await Game.findOne({ sessionId });
+
     if (!game) {
       return res.status(404).json({ error: "Game session not found. Start a new game." });
     }
@@ -54,22 +49,26 @@ const getClue = async (req, res) => {
 
     const clue = game.clues[game.currentClue];
 
-    console.log(`[${new Date().toISOString()}] GET /api/game/clue/${sessionId}: Clue retrieved`);
+    console.log(`[${new Date().toISOString()}] POST /api/game/clue: Clue retrieved securely`);
 
     res.status(200).json({ clue });
   } catch (error) {
-    console.error(`[${new Date().toISOString()}] GET /api/game/clue/${sessionId}: Error retrieving clue`, error);
+    console.error(`[${new Date().toISOString()}] POST /api/game/clue: Error retrieving clue`, error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 };
 
 // Submit an answer and progress the game
 const submitAnswer = async (req, res) => {
-  const { sessionId } = req.params;
-  const { answer } = req.body;
+  const { sessionId, answer } = req.body; // ✅ Securely receiving sessionId in body
+
+  if (!sessionId || !answer) {
+    return res.status(400).json({ error: "Session ID and answer are required." });
+  }
 
   try {
     const game = await Game.findOne({ sessionId });
+
     if (!game) {
       return res.status(404).json({ error: "Game session not found. Start a new game." });
     }
@@ -89,13 +88,13 @@ const submitAnswer = async (req, res) => {
         return res.status(200).json({ message: "Congratulations! You've completed the game." });
       }
 
-      console.log(`[${new Date().toISOString()}] POST /api/game/answer/${sessionId}: Correct answer`);
+      console.log(`[${new Date().toISOString()}] POST /api/game/answer: Correct answer`);
       return res.status(200).json({ message: "Correct! Here's the next clue." });
     } else {
       return res.status(400).json({ message: "Incorrect answer. Try again." });
     }
   } catch (error) {
-    console.error(`[${new Date().toISOString()}] POST /api/game/answer/${sessionId}: Error submitting answer`, error);
+    console.error(`[${new Date().toISOString()}] POST /api/game/answer: Error submitting answer`, error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 };

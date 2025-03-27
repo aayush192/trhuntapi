@@ -1,17 +1,13 @@
 const express = require('express');
-const { startGame, getClue, submitAnswer, getAllGames } = require('../controllers/gameController');
 const router = express.Router();
 
-// Route to start a new game and create the game session
-router.post('/games', startGame);
 
-// Route to retrieve the next clue in a specific game
-router.get('/games/:gameId/clues', getClue);
+const { startGame, getClue, submitAnswer, getAllGames } = require('../controllers/gameController');
 
-// Route to submit an answer for a clue in a specific game
-router.post('/games/:gameId/answer', submitAnswer);
+router.post('/games', startGame); // ✅ Start a game (Frontend sends { type })
+router.post('/game/clue', getClue); // ✅ Get next clue (Frontend sends { sessionId })
+router.post('/game/answer', submitAnswer); // ✅ Submit answer (Frontend sends { sessionId, answer })
+router.get('/games', getAllGames); // ✅ Get all available games (without clues)
 
-// Route to get all games available in the database
-router.get('/games', getAllGames);
 
 module.exports = router;
