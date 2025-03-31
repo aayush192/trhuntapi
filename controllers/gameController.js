@@ -51,6 +51,9 @@ const startGame = async (req, res) => {
   }
 };
 
+
+
+
 // Get the next clue
 const getClue = async (req, res) => {
   const { sessionId, gameId } = req.body;
@@ -100,6 +103,41 @@ const getClue = async (req, res) => {
   }
 };
 
+// Submit answer and update progress
+const submitAnswer = async (req, res) => {
+  const { sessionId, gameId, answer } = req.body;
+  if (!sessionId || !gameId || !answer) {
+    return res.status(400).json({ error: "Session ID, Game ID, and answer are required." });
+  }
+
+  try {
+    const session = await GameSession.findOne({ sessionId });
+    if (!session) return res.status(404).json({ error: "Game session not found." });
+    if (session.gameId !== gameId) return res.status(400).json({ error: "Invalid Game ID." });
+
+    const game = await Game.findOne({ gameId });
+    if (!game) return res.status(404).json({ error: "Game data not found." });
+
+    if (session.currentClueIndex >= game.clues.length) {
+      return res.status(200).json({ message: "Game already completed." });
+    }
+
+    const currentClue = game.clues[session.currentClueIndex];
+    if (currentClue.answer.toLowerCase() === answer.toLowerCase()) {
+      session.currentClueIndex++;
+      if (session.currentClueIndex >= game.clues.length) {
+        session.completed = true;
+      }
+      await session.save();
+      res.status(200).json({ message: "Correct answer!", nextClueIndex: session.currentClueIndex, completed: session.completed });
+    } else {
+      res.status(400).json({ error: "Incorrect answer. Try again." });
+    }
+  } catch (error) {
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
 
 // Get all games (without clues)
 const getAllGames = async (req, res) => {
@@ -112,4 +150,4 @@ const getAllGames = async (req, res) => {
   }
 };
 
-module.exports = { startGame, getClue, getAllGames };  // Export functions
+module.exports = { startGame, getClue, submitAnswer, getAllGames };  // Export functions

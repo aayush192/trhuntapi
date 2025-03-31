@@ -22,6 +22,7 @@ app.get("/", (req, res) => {
 // Game Routes
 app.post("/api/game/start", gameController.startGame); // Start a new game session
 app.post("/api/game/clue", gameController.getClue); // Get the next clue
+app.post("/api/game/answer",gameController.submitAnswer);
 app.get("/api/games", gameController.getAllGames); // Get all games (without clues)
 
 // Handle Undefined Routes
