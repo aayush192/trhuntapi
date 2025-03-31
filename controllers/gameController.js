@@ -111,7 +111,7 @@ const submitAnswer = async (req, res) => {
     if (!game) return res.status(404).json({ error: "Game data not found." });
 
     if (session.currentClueIndex >= game.clues.length) {
-      return res.status(200).json({ message: "Game already completed." });
+      return res.status(200).json({ message: "Game already completed." , completed:true});
     }
 
     const currentClue = game.clues[session.currentClueIndex];
