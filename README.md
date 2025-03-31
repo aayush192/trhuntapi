@@ -1,16 +1,14 @@
-
-
 # 🏆 Treasure Hunt Game - API & Frontend
 
-Welcome to the **Treasure Hunt Game**! 🗺️ This project consists of a **backend API** (Node.js/Express) and a **frontend React application** to create an interactive treasure hunt experience where players solve clues to progress.  
+Welcome to the **Treasure Hunt Game**! 🗺️ This project consists of a **backend API** (Node.js/Express) and a **frontend React application** that creates an interactive treasure hunt experience. Players solve clues to progress through the game and uncover hidden treasures. Ready for the adventure? Let’s get started! 🎉
 
 ## 🕹️ Game Overview
 
-The **Treasure Hunt Game** is divided into two main parts:
+The **Treasure Hunt Game** is split into two key parts:
 
 ### 🔙 Backend (Node.js/Express)
 - Manages game sessions using `sessionId`.
-- Provides API endpoints to:
+- Provides essential API endpoints to:
   - Fetch available games.
   - Start a new game session.
   - Retrieve clues.
@@ -19,9 +17,9 @@ The **Treasure Hunt Game** is divided into two main parts:
 
 ### 🎨 Frontend (React)
 - Displays a **game selection page** where players can choose a treasure hunt.
-- Shows **clues** and accepts **user-submitted answers**.
+- Presents **clues** and accepts **user-submitted answers**.
 - Manages game state using **React hooks**.
-- Interacts with the backend API to fetch games, start sessions, retrieve clues, and verify answers.  
+- Communicates with the backend API to fetch games, start sessions, retrieve clues, and verify answers.
 
 ---
 
@@ -82,130 +80,79 @@ The **Treasure Hunt Game** is divided into two main parts:
 ## ⚙️ Configuration
 
 ### **Backend URL Configuration (Frontend)**
-In the frontend, ensure API URLs match your backend setup. Example:
+In the frontend, make sure the API URLs match your backend setup. For example:
 
-```javascript
-const API_URL = 'http://localhost:5000/api'; // Adjust if backend is running on another port
-```
+#### API Endpoints
 
-### Example API Calls:
-```javascript
-fetch(`${API_URL}/games`);
-fetch(`${API_URL}/game/start/:type`);
-fetch(`${API_URL}/game/clue/:sessionId`);
-fetch(`${API_URL}/game/answer/:sessionId`);
-```
+1. **Start a Game Session**
 
----
-
-## 🎮 How to Play
-
-1️⃣ **Game Selection:**
-   - Open the frontend application in your browser.
-   - A list of available treasure hunts will be displayed.
-   - Click on a game to start your adventure.  
-
-2️⃣ **Clue/Answer Phase:**
-   - Your first **clue** appears.
-   - Type your answer in the input field and hit **Submit**.
-   - If correct ✅ → The next clue appears.
-   - If incorrect ❌ → Try again until you get it right.
-
-3️⃣ **Game Completion:**
-   - After solving all clues, a **success message** appears.
-   - You can restart or select another treasure hunt.
-
----
-
-## 📌 API Endpoints
-
-### 1️⃣ Fetch Available Games  
-   **Endpoint:** `GET /api/games`  
-   **Response Example:**
-   ```json
-   [
-     {
-       "sessionId": "1234-5678-91011",
-       "type": "easy",
-       "clueCount": 10
-     }
-   ]
-   ```
-
-### 2️⃣ Start a New Game  
-   **Endpoint:** `POST /api/game/start/:type`  
-   **Request Body Example:**
+   **Endpoint:** `POST /api/game/start`
+   
+   **Request Body:**
    ```json
    {
-     "clueCount": 10,
-     "clues": [
-       { "question": "What has to be broken before you use it?", "answer": "Egg" },
-       { "question": "I speak without a mouth and hear without ears. What am I?", "answer": "Echo" }
-     ],
-     "username": "player1"
+     "gameId": "GH-10",
+     "playerId": "sandesh"
    }
    ```
-   **Response Example:**
+   
+   **Response:**
    ```json
-   { "sessionId": "abcd-efgh-ijkl" }
+   {
+     "sessionId": "abcd-1234-xyz-5678",
+     "gameSession": { ... }
+   }
    ```
 
-### 3️⃣ Get the Next Clue  
-   **Endpoint:** `GET /api/game/clue/:sessionId`  
-   **Response Example:**
+2. **Get Next Clue**
+
+   **Endpoint:** `POST /api/game/clue`
+   
+   **Request Body:**
    ```json
-   { "clue": { "question": "What has keys but can't open locks?", "answer": "Piano" } }
+   {
+     "sessionId": "abcd-1234-xyz-5678",
+     "gameId": "GH-10"
+   }
+   ```
+   
+   **Response:**
+   ```json
+   {
+     "clue": "Find the golden key near the oak tree."
+   }
    ```
 
-### 4️⃣ Submit an Answer  
-   **Endpoint:** `POST /api/game/answer/:sessionId`  
-   **Request Body Example:**
+3. **Get All Games (without clues)**
+
+   **Endpoint:** `GET /api/game`
+
+   **Response:**
    ```json
-   { "answer": "Piano" }
+   [
+     { "gameId": "GH-10", "name": "Pirate Adventure" },
+     { "gameId": "GH-20", "name": "Space Expedition" }
+   ]
    ```
-   **Responses:**
-   ✅ **Correct Answer:**
-   ```json
-   { "message": "Correct! Here's the next clue." }
-   ```
-   ❌ **Wrong Answer:**
-   ```json
-   { "message": "Incorrect answer. Try again." }
-   ```
-
----
-
-## 🔧 Frontend Components
-
-### **React Components:**
-- **`GameSelectionPage`** – Displays available treasure hunts.
-- **`ClueAnswerPage`** – Shows clues, handles answers, and tracks progress.
-
----
-
-## ⚠️ Important Notes
-- The backend stores **game progress in memory**. For **persistent data**, consider using a **database**.
-- Ensure the **backend server** is running before launching the **frontend**.
-- The **frontend assumes** the backend runs at `http://localhost:5000`. If using a different port, update API URLs.
 
 ---
 
 ## 🚀 Future Enhancements
 📌 **User Authentication** – Track individual player progress.  
-📌 **Persistent Game Progress** – Use a **database** instead of in-memory storage.  
-📌 **Leaderboard & Scoring** – Show rankings based on performance.  
-📌 **Improved UI/UX** – Add animations and sound effects for a more immersive experience.  
+📌 **Persistent Game Progress** – Use a **database** (e.g., MongoDB) instead of in-memory storage.  
+📌 **Leaderboard & Scoring** – Add a ranking system based on player performance.  
+📌 **Improved UI/UX** – Integrate animations, sound effects, and other immersive features.  
 
 ---
 
 ## 🛠 Technologies Used
 
-| Tech Stack | Description |
-|------------|------------|
-| **Node.js & Express.js** | Backend framework for API development. |
-| **React.js** | Frontend framework for the game interface. |
+| Tech Stack             | Description                                    |
+|------------------------|------------------------------------------------|
+| **Node.js & Express.js** | Backend framework for API development.         |
+| **React.js**            | Frontend framework for the game interface.     |
 | **MongoDB & Mongoose** _(Future Enhancement)_ | Database for storing game sessions & progress. |
-| **UUID** | Generates unique session IDs. |
+| **UUID**                | Generates unique session IDs.                  |
 
 ---
 
@@ -216,7 +163,7 @@ Contributions are welcome! To contribute:
 2. Create a new branch: `git checkout -b feature-branch`  
 3. Commit changes: `git commit -m "Add new feature"`  
 4. Push to your branch: `git push origin feature-branch`  
-5. Open a Pull Request ✅  
+5. Open a Pull Request ✅
 
 ---
 
@@ -227,4 +174,4 @@ This project is licensed under the **MIT License**. Feel free to use, modify, an
 ---
 
 💡 **Enjoy the game and happy treasure hunting!** 🏴‍☠️✨
-
+```
