@@ -80,7 +80,7 @@ const getClue = async (req, res) => {
     }
 
     if (session.currentClueIndex >= game.clues.length) {
-      return res.status(200).json({ message: "Congratulations! You've completed the game." });
+      return res.status(200).json({ message: "Congratulations! You've completed the game.",completed:true});
     }
 
     // Get the current clue (Do NOT increase currentClueIndex here!)
