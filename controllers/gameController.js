@@ -1,123 +1,115 @@
+// gameController.js
 const Game = require('../models/Game');
-const User = require('../models/User');
+const GameSession = require('../models/GameSession');
 const { v4: uuidv4 } = require('uuid');
 
-// Helper function to generate a unique session ID
+
 const generateSessionId = () => uuidv4();
 
+// Start a new game session or return existing session if player already has one
 const startGame = async (req, res) => {
-  console.log("Request Body:", req.body); // Debugging log
-  console.log("📥 Request received at /api/games");
+  console.log("📥 Request received at /api/game/start", req.body);
 
-  const { gameId } = req.body;
-  console.log("🔍 Checking request body...", req.body);
+  const { gameId, playerId } = req.body;
 
-  if (!gameId) {
-    console.log("❌ Game type is missing");
-    return res.status(400).json({ error: "Game type is required." });
+  if (!gameId || !playerId) {
+    console.log("❌ Missing gameId or playerId");
+    return res.status(400).json({ error: "Game ID and Player ID are required." });
   }
 
   try {
-    const sessionId = generateSessionId();
-    console.log(`🆔 Generated Session ID: ${sessionId}`);
+    // Check if a session already exists for the given gameId and playerId
+    let existingSession = await GameSession.findOne({ gameId, playerId });
 
-    const game = new Game({ sessionId, gameId, clueCount: 0, clues: [], currentClue: 0 });
-    console.log("📝 Creating game object...", game);
+    if (existingSession) {
+      console.log("✅ Existing session found:", existingSession);
+      return res.status(200).json({ sessionId: existingSession.sessionId, gameSession: existingSession });
+    }
 
-    await game.save();
-    console.log("✅ Game saved successfully to DB");
+    // Generate a new session ID
+    const sessionId = generateSessionId(); 
 
-    res.status(201).json({ sessionId });
+    const gameSession = new GameSession({
+      sessionId,
+      gameId,
+      playerId,
+      currentClueIndex: 0, 
+      completed: false, 
+    });
+
+    console.log("✅ Creating new session:", gameSession);
+
+    // Save the game session to the database
+    await gameSession.save();
+    console.log("✅ Session successfully saved in DB");
+
+    res.status(201).json({ sessionId, gameSession });
 
   } catch (error) {
     console.error("❌ Error in startGame:", error);
-    res.status(500).json({ error: "Internal Server Error"});
+    res.status(500).json({ error: "Internal Server Error" });
   }
 };
 
-// Retrieve the next clue securely using POST
+// Get the next clue
 const getClue = async (req, res) => {
-  const { sessionId } = req.body; // ✅ Fetch sessionId from body instead of URL params
+  const { sessionId, gameId } = req.body;
 
-  if (!sessionId) {
-    return res.status(400).json({ error: "Session ID is required." });
+  // Validate input
+  if (!sessionId || !gameId) {
+    return res.status(400).json({ error: "Session ID and Game ID are required." });
   }
 
   try {
-    const game = await Game.findOne({ sessionId });
+    // Fetch the game session using sessionId
+    const session = await GameSession.findOne({ sessionId });
 
-    if (!game) {
+    if (!session) {
       return res.status(404).json({ error: "Game session not found. Start a new game." });
     }
 
-    if (game.currentClue >= game.clues.length) {
+    // Ensure the game session matches the requested gameId
+    if (session.gameId !== gameId) {
+      return res.status(400).json({ error: "Invalid Game ID for this session." });
+    }
+
+    // Fetch the correct game using gameId
+    const game = await Game.findOne({ gameId });
+
+    if (!game) {
+      return res.status(404).json({ error: "Game data not found." });
+    }
+
+    // Check if the player has completed all clues
+    if (session.currentClueIndex >= game.clues.length) {
       return res.status(200).json({ message: "Congratulations! You've completed the game." });
     }
 
-    const clue = game.clues[game.currentClue];
+    // Get the next clue from the selected game
+    const clue = game.clues[session.currentClueIndex];
 
-    console.log(`[${new Date().toISOString()}] POST /api/game/clue: Clue retrieved securely`);
+    // Update the session to move to the next clue
+    session.currentClueIndex += 1;
+    await session.save();
 
     res.status(200).json({ clue });
+
   } catch (error) {
-    console.error(`[${new Date().toISOString()}] POST /api/game/clue: Error retrieving clue`, error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    console.error("❌ Error retrieving clue:", error);
+    res.status(500).json({ error: "Internal Server Error" });
   }
 };
 
-// Submit an answer and progress the game
-const submitAnswer = async (req, res) => {
-  const { sessionId, answer } = req.body; // ✅ Securely receiving sessionId in body
 
-  if (!sessionId || !answer) {
-    return res.status(400).json({ error: "Session ID and answer are required." });
-  }
-
-  try {
-    const game = await Game.findOne({ sessionId });
-
-    if (!game) {
-      return res.status(404).json({ error: "Game session not found. Start a new game." });
-    }
-
-    if (game.currentClue >= game.clues.length) {
-      return res.status(400).json({ message: "Game already completed. Start a new game." });
-    }
-
-    const correctAnswer = game.clues[game.currentClue].answer.trim().toLowerCase();
-    const userAnswer = answer.trim().toLowerCase();
-
-    if (userAnswer === correctAnswer) {
-      game.currentClue += 1;
-      await game.save();
-
-      if (game.currentClue >= game.clues.length) {
-        return res.status(200).json({ message: "Congratulations! You've completed the game." });
-      }
-
-      console.log(`[${new Date().toISOString()}] POST /api/game/answer: Correct answer`);
-      return res.status(200).json({ message: "Correct! Here's the next clue." });
-    } else {
-      return res.status(400).json({ message: "Incorrect answer. Try again." });
-    }
-  } catch (error) {
-    console.error(`[${new Date().toISOString()}] POST /api/game/answer: Error submitting answer`, error);
-    res.status(500).json({ error: 'Internal Server Error' });
-  }
-};
-
-// Get all available games without clues
+// Get all games (without clues)
 const getAllGames = async (req, res) => {
   try {
-    const games = await Game.find({}, { clues: 0 });
-
-    console.log(`[${new Date().toISOString()}] GET /api/games: Retrieved ${games.length} games`);
-
+    const games = await Game.find({}, { clues: 0 }); // Exclude clues field
     res.status(200).json(games);
   } catch (error) {
-    console.error(`[${new Date().toISOString()}] GET /api/games: Error fetching games`, error);
+    console.error("❌ Error fetching games:", error);
     res.status(500).json({ error: 'Error fetching games' });
   }
 };
 
-module.exports = { startGame, getClue, submitAnswer, getAllGames };
+module.exports = { startGame, getClue, getAllGames };  // Export functions

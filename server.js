@@ -2,7 +2,7 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors"); // Import CORS
 const connectDB = require("./config/db");
-const Game = require("./models/Game"); // Import the Game model
+const gameController = require("./controllers/gameController"); // Import gameController
 
 const app = express();
 
@@ -19,12 +19,10 @@ app.get("/", (req, res) => {
   res.send("Treasure Hunt API is Running...");
 });
 
-// Import Routes
-const gameRoutes = require("./routes/gameRoutes");
-const userRoutes = require("./routes/userRoutes");
-
-app.use("/api/game", gameRoutes);
-app.use("/api/user", userRoutes);
+// Game Routes
+app.post("/api/game/start", gameController.startGame); // Start a new game session
+app.post("/api/game/clue", gameController.getClue); // Get the next clue
+app.get("/api/games", gameController.getAllGames); // Get all games (without clues)
 
 // Handle Undefined Routes
 app.use((req, res) => {
@@ -37,19 +35,8 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: "Something went wrong!" });
 });
 
-// Function to fetch and log games on server start
-async function fetchAndLogGames() {
-  try {
-    const games = await Game.find();
-  } catch (error) {
-    console.error("Error fetching games on server start:", error);
-  }
-}
-const HOST = "http://localhost"; // Change if needed (e.g., when deploying)
-
 // Start Server
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, async () => {
-  console.log(`🚀 Server running on port$ ${HOST}:${PORT}`);
-  await fetchAndLogGames(); // Call the function to fetch and log games
+const PORT = process.env.PORT || 1000;
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
 });

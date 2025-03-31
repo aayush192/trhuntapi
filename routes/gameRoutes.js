@@ -1,13 +1,10 @@
 const express = require('express');
 const router = express.Router();
+const { startGame, getClue, submitAnswer, getAllGames } = require('../controllers/gameController'); // ✅ Check this line
 
-
-const { startGame, getClue, submitAnswer, getAllGames } = require('../controllers/gameController');
-
-router.post('/games', startGame); // ✅ Start a game (Frontend sends { type })
-router.post('/game/clue', getClue); // ✅ Get next clue (Frontend sends { sessionId })
-router.post('/game/answer', submitAnswer); // ✅ Submit answer (Frontend sends { sessionId, answer })
-router.get('/games', getAllGames); // ✅ Get all available games (without clues)
-
+router.post('/games', startGame); // ✅ Make sure startGame is defined
+router.post('/game/clue', getClue); // ✅ Make sure getClue is defined
+router.post('/game/answer', submitAnswer); // ✅ Make sure submitAnswer is defined
+router.get('/games', getAllGames); // ✅ Make sure getAllGames is defined
 
 module.exports = router;
