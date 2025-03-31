@@ -123,7 +123,7 @@ const submitAnswer = async (req, res) => {
       await session.save();
       res.status(200).json({ message: "Correct answer!", nextClueIndex: session.currentClueIndex, completed: session.completed,correct:true });
     } else {
-      res.status(422).json({ error: "Incorrect answer. Try again." });
+      res.status(200).json({ error: "Incorrect answer. Try again." });
     }
   } catch (error) {
     res.status(500).json({ error: "Internal Server Error" });
