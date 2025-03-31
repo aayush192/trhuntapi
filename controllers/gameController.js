@@ -58,42 +58,33 @@ const startGame = async (req, res) => {
 const getClue = async (req, res) => {
   const { sessionId, gameId } = req.body;
 
-  // Validate input
   if (!sessionId || !gameId) {
     return res.status(400).json({ error: "Session ID and Game ID are required." });
   }
 
   try {
-    // Fetch the game session using sessionId
     const session = await GameSession.findOne({ sessionId });
 
     if (!session) {
       return res.status(404).json({ error: "Game session not found. Start a new game." });
     }
 
-    // Ensure the game session matches the requested gameId
     if (session.gameId !== gameId) {
       return res.status(400).json({ error: "Invalid Game ID for this session." });
     }
 
-    // Fetch the correct game using gameId
     const game = await Game.findOne({ gameId });
 
     if (!game) {
       return res.status(404).json({ error: "Game data not found." });
     }
 
-    // Check if the player has completed all clues
     if (session.currentClueIndex >= game.clues.length) {
       return res.status(200).json({ message: "Congratulations! You've completed the game." });
     }
 
-    // Get the next clue from the selected game
+    // Get the current clue (Do NOT increase currentClueIndex here!)
     const clue = game.clues[session.currentClueIndex];
-
-    // Update the session to move to the next clue
-    session.currentClueIndex += 1;
-    await session.save();
 
     res.status(200).json({ clue });
 
@@ -102,6 +93,7 @@ const getClue = async (req, res) => {
     res.status(500).json({ error: "Internal Server Error" });
   }
 };
+
 
 // Submit answer and update progress
 const submitAnswer = async (req, res) => {
