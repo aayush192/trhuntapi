@@ -141,5 +141,17 @@ const getAllGames = async (req, res) => {
     res.status(500).json({ error: 'Error fetching games' });
   }
 };
+// Function to clear all game sessions
+const clearGameSessions = async () => {
+  try {
+    await GameSession.deleteMany({});
+    console.log("🗑️ All game sessions deleted successfully.");
+  } catch (error) {
+    console.error("❌ Error deleting game sessions:", error);
+  }
+};
+
+// Run the clearGameSessions function every 30 minutes
+setInterval(clearGameSessions, 10 * 60 * 1000); // 10 min * 60 sec * 1000 ms
 
 module.exports = { startGame, getClue, submitAnswer, getAllGames };  // Export functions
