@@ -141,6 +141,16 @@ const getAllGames = async (req, res) => {
     res.status(500).json({ error: 'Error fetching games' });
   }
 };
+// Get all games (without clues)
+const getGames = async (req, res) => {
+  try {
+    const games = await Game.find(); // Exclude clues field
+    res.status(200).json(games);
+  } catch (error) {
+    console.error("❌ Error fetching games:", error);
+    res.status(500).json({ error: 'Error fetching games' });
+  }
+};
 // Function to clear all game sessions
 const clearGameSessions = async () => {
   try {
@@ -154,4 +164,4 @@ const clearGameSessions = async () => {
 // Run the clearGameSessions function every 30 minutes
 setInterval(clearGameSessions, 10 * 60 * 1000); // 10 min * 60 sec * 1000 ms
 
-module.exports = { startGame, getClue, submitAnswer, getAllGames };  // Export functions
+module.exports = { startGame, getClue, submitAnswer, getAllGames, getGames };  // Export functions
